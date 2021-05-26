@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 from resolution import X, Y
 from uuid import uuid4 as uuid
-from random import randint
+from random import randint, uniform
 from pytesseract import image_to_string
 from PIL import Image
+from os import remove
 
 fonts = [
     "C:\\Users\\jovtottrup\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\matplotlib\\mpl-data\\fonts\\ttf\\DejaVuSerif-BoldItalic.ttf",
@@ -55,7 +56,7 @@ def generate_label(min=6, max=18):
         label = " ".join([danish.sample() for _ in range(amount)])
         exploded = list(label)
         spaces = [i for i, l in enumerate(exploded) if l == " "]
-        amount_to_replace = randint(0, len(spaces) - 1)
+        amount_to_replace = randint(int(uniform(0, len(spaces) - 1)), len(spaces) - 1)
         for i in range(amount_to_replace):
             p = randint(0, len(spaces) - 1)
             exploded[spaces[p]] = "\n"
@@ -63,6 +64,7 @@ def generate_label(min=6, max=18):
         id = uuid()
         fprop = FontProperties()
         fprop.set_file(fonts[randint(0, len(fonts) - 1)])
+        fprop.set_size(32)
         path = f'labels/label-{id}.png' 
         plt.text(0, 0.5, label, fontproperties=fprop)
         plt.axis('off')
@@ -70,6 +72,7 @@ def generate_label(min=6, max=18):
         plt.close()
         test = "\n".join(image_to_string(Image.open(path), lang="dan").splitlines()[:-1])
         if label.strip() != test.strip():
+            remove(path)
             continue
         return id, path, label
 
