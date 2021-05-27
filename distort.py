@@ -22,6 +22,7 @@ def pad_image(img, size: int):
 
 
 def warp_cylindrical(img, K=None):
+    # STOLEN FROM A GIST: https://gist.github.com/royshil/0b21e8e7c6c1f46a16db66c384742b2b
     h_, w_ = img.shape[:2]
     if K is None:
         K = np.array([[800, 0,   w_/2],
