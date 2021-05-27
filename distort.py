@@ -1,7 +1,6 @@
 from hashlib import new
 import numpy as np
 import cv2
-from compose import compose
 from random import uniform
 import os
 
@@ -15,7 +14,7 @@ def pad_image(img, size: int):
     delta_h = size - new_size[0]
     top, bottom = delta_h//2, delta_h-(delta_h//2)
     left, right = delta_w//2, delta_w-(delta_w//2)
-    color = [0, 0, 0]
+    color = [0, 0, 0, 0]
     im3 = cv2.copyMakeBorder(im2, top, bottom, left,
                              right, cv2.BORDER_CONSTANT, value=color)
     return im3
@@ -46,34 +45,37 @@ def warp_cylindrical(img, K=None):
     B = B.reshape(h_, w_, -1)
 
     # for transparent borders...
-    img_rgba = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+    #img_rgba = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
     # warp the image according to cylindrical coords
-    return cv2.remap(img_rgba, B[:, :, 0].astype(np.float32), B[:, :, 1].astype(np.float32), cv2.INTER_AREA, borderMode=cv2.BORDER_TRANSPARENT)
+    return cv2.remap(img, B[:, :, 0].astype(np.float32), B[:, :, 1].astype(np.float32), cv2.INTER_CUBIC)
 
 
 def distort(img):
     img = pad_image(img, 1024)
     h, w = img.shape[:2]
     cv2. waitKey(0)
-    w_c = np.float32([[uniform(800, 1200), 0, w / 2],
-                      [0, uniform(800, 1200), h / 2],
+    w_c = np.float32([[uniform(w / 3, h), 0, w / 2],
+                      [0, uniform(h / 3, w), h / 2],
                       [0, 0, 1]])
 
     w_a = np.float32([[uniform(0.5, 1), 0,               0],
                       [0,               uniform(0.5, 1), uniform(-h/5, h/5)]])
     w_r = cv2.getRotationMatrix2D(
         (uniform(w/4, w/2), uniform(h/4, h/2)), uniform(-45, 45), 1)
+    print("w_c.shape", w_c.shape)
+    print("w_r.shape", w_r.shape)
     # res = cv2.warpAffine(img, w_a, (w, h))
     rot = cv2.warpAffine(img, w_r, (w, h))
     warped = warp_cylindrical(rot, w_c)
+    # TODO: Add noisy background to make the problem harder
+    # This could be like random shapes with some added blur
+    # I think that opencv is more than capable of drawing random lines, squares and circles
+    
     return warped
-
 
 if __name__ == "__main__":
     for f in os.scandir("labels"):
-        img = cv2.imread(f.path)
-        cv2.imshow("original", img)
+        id_and_extension = f.name.split("label-")[1]
+        img = cv2.imread(f.path, cv2.IMREAD_UNCHANGED)
         distorted = distort(img)
-        cv2.imshow("warped", distorted)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        cv2.imwrite(f"distortions/distort-{id_and_extension}", distorted)
